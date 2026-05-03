@@ -28,7 +28,7 @@ export default function BuscarProfesoresPage() {
 
   const filtrados = profesores.filter((p) =>
     p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    (p.departamento || '').toLowerCase().includes(busqueda.toLowerCase())
+    (p.departamento?.nombre || '').toLowerCase().includes(busqueda.toLowerCase())
   )
 
   return (
@@ -68,7 +68,7 @@ export default function BuscarProfesoresPage() {
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900 text-sm">{p.nombre}</p>
-                    {p.departamento && <p className="text-xs text-gray-500">{p.departamento}</p>}
+                    {p.departamento && <p className="text-xs text-gray-500">{p.departamento.nombre}</p>}
                     {p.duracionCita && <p className="text-xs text-gray-400">Citas de {p.duracionCita} min</p>}
                   </div>
                 </div>

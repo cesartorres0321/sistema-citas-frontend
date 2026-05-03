@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { registerApi } from '@/api/auth.api'
 import ErrorMessage from '@/components/ErrorMessage'
+import { getDepartamentosApi, getTiposProfesorApi } from '@/api/departamentos.api'
 
 const schema = z.object({
   nombre: z.string().min(2, 'El nombre es obligatorio'),
@@ -12,7 +13,8 @@ const schema = z.object({
   password: z.string().min(6, 'Mínimo 6 caracteres'),
   role: z.enum(['alumno', 'profesor']),
   matricula: z.string().optional(),
-  departamento: z.string().optional(),
+  departamentoId: z.coerce.number().optional().nullable(),
+  tipoId: z.coerce.number().optional().nullable(),
 }).refine((d) => !(d.role === 'alumno' && !d.matricula), {
   message: 'La matrícula es obligatoria para alumnos',
   path: ['matricula'],
@@ -30,6 +32,17 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const [apiError, setApiError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [departamentos, setDepartamentos] = useState([])
+  const [tipos, setTipos] = useState([])
+
+  useEffect(() => {
+    Promise.all([getDepartamentosApi(), getTiposProfesorApi()])
+      .then(([dRes, tRes]) => {
+        setDepartamentos(dRes.data.data || [])
+        setTipos(tRes.data.data || [])
+      })
+      .catch(() => {})
+  }, [])
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
@@ -112,10 +125,32 @@ export default function RegisterPage() {
           )}
 
           {role === 'profesor' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-800 mb-1.5">Departamento</label>
-              <input {...register('departamento')} placeholder="Ingrese su departamento" className={inputClass} />
-            </div>
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1.5">Departamento</label>
+                <div className="relative">
+                  <select {...register('departamentoId')} className={inputClass + ' appearance-none pr-10'}>
+                    <option value="">Selecciona un departamento</option>
+                    {departamentos.map((d) => (
+                      <option key={d.id} value={d.id}>{d.nombre}</option>
+                    ))}
+                  </select>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">∨</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1.5">Tipo de profesor <span className="text-gray-400 font-normal">(opcional)</span></label>
+                <div className="relative">
+                  <select {...register('tipoId')} className={inputClass + ' appearance-none pr-10'}>
+                    <option value="">Sin especificar</option>
+                    {tipos.map((t) => (
+                      <option key={t.id} value={t.id}>{t.nombre}</option>
+                    ))}
+                  </select>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">∨</span>
+                </div>
+              </div>
+            </>
           )}
 
           <ErrorMessage message={apiError} />

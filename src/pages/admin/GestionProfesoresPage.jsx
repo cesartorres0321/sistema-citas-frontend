@@ -12,17 +12,20 @@ import {
   updateProfesorApi,
   deleteProfesorApi,
 } from '@/api/profesores.api'
+import { getDepartamentosApi, getTiposProfesorApi } from '@/api/departamentos.api'
 
 const createSchema = z.object({
   nombre: z.string().min(2, 'Obligatorio'),
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
-  departamento: z.string().min(1, 'Obligatorio'),
+  departamentoId: z.coerce.number({ invalid_type_error: 'Selecciona un departamento' }).min(1, 'Obligatorio'),
+  tipoId: z.coerce.number().optional().nullable(),
 })
 const editSchema = z.object({
   nombre: z.string().min(2, 'Obligatorio'),
   email: z.string().email('Email inválido'),
-  departamento: z.string().min(1, 'Obligatorio'),
+  departamentoId: z.coerce.number({ invalid_type_error: 'Selecciona un departamento' }).min(1, 'Obligatorio'),
+  tipoId: z.coerce.number().optional().nullable(),
 })
 
 const inputClass = "w-full border border-gray-300 rounded-2xl px-4 py-3 text-sm focus:outline-none bg-white"
@@ -37,17 +40,31 @@ function ProfesorModal({ profesor, onClose, onSaved }) {
   const isEdit = !!profesor
   const [apiError, setApiError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [departamentos, setDepartamentos] = useState([])
+  const [tipos, setTipos] = useState([])
+
+  useEffect(() => {
+    Promise.all([getDepartamentosApi(), getTiposProfesorApi()])
+      .then(([dRes, tRes]) => {
+        setDepartamentos(dRes.data.data || [])
+        setTipos(tRes.data.data || [])
+      })
+      .catch(() => {})
+  }, [])
 
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(isEdit ? editSchema : createSchema),
-    defaultValues: isEdit ? { nombre: profesor.nombre, email: profesor.email, departamento: profesor.departamento } : {},
+    defaultValues: isEdit
+      ? { nombre: profesor.nombre, email: profesor.email, departamentoId: profesor.departamento?.id, tipoId: profesor.tipo?.id ?? '' }
+      : {},
   })
 
   const onSubmit = async (values) => {
     setApiError('')
     setLoading(true)
     try {
-      isEdit ? await updateProfesorApi(profesor.id, values) : await createProfesorApi({ ...values, role: 'profesor' })
+      const payload = { ...values, tipoId: values.tipoId || null }
+      isEdit ? await updateProfesorApi(profesor.id, payload) : await createProfesorApi({ ...payload, role: 'profesor' })
       onSaved()
     } catch (e) {
       setApiError(e.response?.data?.error || 'Error al guardar')
@@ -55,6 +72,8 @@ function ProfesorModal({ profesor, onClose, onSaved }) {
       setLoading(false)
     }
   }
+
+  const selectClass = inputClass + ' appearance-none'
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
@@ -82,8 +101,28 @@ function ProfesorModal({ profesor, onClose, onSaved }) {
           )}
           <div>
             <label className="block text-sm font-medium text-gray-800 mb-1.5">Departamento</label>
-            <input {...register('departamento')} className={inputClass} placeholder="Ej. Ingeniería de Software" />
-            {errors.departamento && <p className="text-red-500 text-xs mt-1">{errors.departamento.message}</p>}
+            <div className="relative">
+              <select {...register('departamentoId')} className={selectClass}>
+                <option value="">Selecciona un departamento</option>
+                {departamentos.map((d) => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </select>
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">∨</span>
+            </div>
+            {errors.departamentoId && <p className="text-red-500 text-xs mt-1">{errors.departamentoId.message}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-800 mb-1.5">Tipo de profesor <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <div className="relative">
+              <select {...register('tipoId')} className={selectClass}>
+                <option value="">Sin especificar</option>
+                {tipos.map((t) => (
+                  <option key={t.id} value={t.id}>{t.nombre}</option>
+                ))}
+              </select>
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">∨</span>
+            </div>
           </div>
           <ErrorMessage message={apiError} />
           <div className="flex gap-3 pt-1">
@@ -170,7 +209,7 @@ export default function GestionProfesoresPage() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500">{p.email}</p>
-                    {p.departamento && <p className="text-xs text-gray-400">{p.departamento}</p>}
+                    {p.departamento && <p className="text-xs text-gray-400">{p.departamento.nombre}{p.tipo ? ` · ${p.tipo.nombre}` : ''}</p>}
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">

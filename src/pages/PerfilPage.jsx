@@ -206,7 +206,8 @@ export default function PerfilPage() {
               <Field label="Nombre" value={perfil?.nombre} />
               <Field label="Email" value={perfil?.email} />
               {perfil?.matricula && <Field label="Matrícula" value={perfil.matricula} />}
-              {perfil?.departamento && <Field label="Departamento" value={perfil.departamento} />}
+              {perfil?.departamento && <Field label="Departamento" value={perfil.departamento.nombre} />}
+              {perfil?.tipo && <Field label="Tipo" value={perfil.tipo.nombre} />}
 
               <ErrorMessage message={error} />
 
