@@ -6,7 +6,6 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 import ErrorMessage from '@/components/ErrorMessage'
 import ReprogramarModal from '@/components/ReprogramarModal'
 import { getCitasApi, cancelarCitaApi } from '@/api/citas.api'
-import { format, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const CalendarIcon = () => (
@@ -137,7 +136,7 @@ export default function DashboardAlumnoPage() {
 }
 
 function CitaCard({ cita, onCancelar, onReprogramar }) {
-  const fecha = format(parseISO(cita.fecha), "dd/MM/yyyy", { locale: es })
+  const fecha = cita.fecha.split('T')[0].split('-').reverse().join('/')
   const estado = cita.estado
 
   return (
